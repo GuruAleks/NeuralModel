@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from math import sin
+from math import sin, cosh
 
 #from decimal import ROUND_FLOOR, Decimal
 
