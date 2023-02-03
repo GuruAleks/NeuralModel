@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from math import sin
+
 #from decimal import ROUND_FLOOR, Decimal
 
 from lib.mathtool import KalmanFilter, dTime, derivative, derivative_calc
