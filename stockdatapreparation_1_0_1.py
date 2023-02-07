@@ -36,28 +36,25 @@ async def last_price_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
     # создаем болванки(пустые массивы)
     # - массив изменения цены, пропущенного через фильтр Калмана;
     lastprice_KF = np.zeros(datetime_arr.shape[0], dtype=float)
-    
-    # - массив производной изменения цены, пропущенного через фильтр Калмана;
-    lastprice_KF_DF = np.zeros(datetime_arr.shape[0], dtype=float)
+    lastprice_KF[0] = lastprice_arr[0]  # формируем "ненулевое" значение первой выборки
     
     # Создаем экзмепляр класса Фильтра Калмана (в качестве инициализации начальных значений применяется первое значение изменения цены)
     lastprice_class_KF = KalmanFilter(lastprice_arr[0], variance=0.075)
 
     for cnt in tqdm(range(1, datetime_arr.shape[0]), desc='Last Price Calc'):
-        lastprice_KF[cnt] = lastprice_class_KF.KF_processing(lastprice_arr[cnt])
-        if cnt >= 2:
-            # Вычисляем производную от изменения цены - берем производную по трем точкам.
-            # время дифференцирования усредняем 
-            lastprice_KF_DF[cnt] = derivative_calc(lastprice_KF[(cnt-2):(cnt+1)], np.mean(deltatime_arr[(cnt-2) : (cnt+1)]))
+        # Делаем проверку задержки времени
+        if deltatime_arr[cnt] <= 30.0:
+            # если меньше 30 секунд, то расчитываем по фильтру Калмана
+            lastprice_KF[cnt] = lastprice_class_KF.KF_processing(lastprice_arr[cnt])
         else:
-            # Для первых двух значений заполняем по умолчанию [0]..[1]
-            lastprice_KF_DF[cnt] = derivative_calc(lastprice_KF[:cnt+1], deltatime_arr[cnt])    
+            # если больше 30 секунд, то обнуляем начальное состояние фильтра Калмана
+            lastprice_class_KF = KalmanFilter(lastprice_arr[cnt], variance=0.075)
+            lastprice_KF[cnt] = lastprice_arr[cnt]
         await asyncio.sleep(0)
 
     # Создаем массив полученных данных в формате DataFrame
     result = pd.DataFrame({'DateTime': datetime_arr.tolist(),
-                            'LastPriceKF': lastprice_KF.tolist(),
-                            'LastPriceKF_DF': lastprice_KF_DF.tolist()})
+                            'LastPriceKF': lastprice_KF.tolist()})
     
     result = result.set_index(['DateTime'], drop=False)
 

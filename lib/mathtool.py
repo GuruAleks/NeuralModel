@@ -18,7 +18,6 @@ class KalmanFilter:
     # вычисление фильтрованного значения
     # ВХОДНЫЕ ПАРАМЕТРЫ:
     #   data - входные данные
-    
     def KF_processing(self, data):
         # Вычисляем ошибку предыдущего шага
         Pe = self.p_variance * (self.covariance**2) + (self.__variance_move**2)
@@ -28,6 +27,11 @@ class KalmanFilter:
         result = self.covariance*self.prev_data + self.p_variance/self.dNoise*(data - self.covariance*self.prev_data)
         self.prev_data = result
         return result
+
+    # Обнуляем параметры фильтра
+    def KF_reset(self, zero_data):
+        self.prev_data = zero_data          # формируем предварительные данные
+        self.p_variance = self.dNoise       # инициализируем дисперсию первой оценки
 
     @property
     def variance_move(self):
