@@ -19,6 +19,10 @@ __version__ = '1.0.2'
 # Предельное время после которого обнуляется настройки (в секундах)
 SET_CRITICAL_DTIME = 30.0
 
+LASTPRICE_KF_VARIANCE = 0.075
+
+VOLUMESUM_KF_VARIANCE = 0.1
+
 # Вычисляем в асинхронном потоке параметры значений изменений цены
 async def last_price_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
     """
@@ -43,7 +47,7 @@ async def last_price_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
     lastprice_KF[0] = lastprice_arr[0]  # формируем "ненулевое" значение первой выборки
     
     # Создаем экзмепляр класса Фильтра Калмана (в качестве инициализации начальных значений применяется первое значение изменения цены)
-    lastprice_class_KF = KalmanFilter(lastprice_arr[0], variance=0.075)
+    lastprice_class_KF = KalmanFilter(lastprice_arr[0], variance=LASTPRICE_KF_VARIANCE)
 
     for cnt in tqdm(range(1, datetime_arr.shape[0]), desc='Last Price Calc'):
         # Делаем проверку задержки времени
@@ -53,7 +57,7 @@ async def last_price_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
         else:
             # если больше 30 секунд, то обнуляем начальное состояние фильтра Калмана
             lastprice_KF[cnt] = lastprice_arr[cnt]
-            lastprice_class_KF.KF_reset(lastprice_class_KF[cnt])
+            lastprice_class_KF.KF_reset(lastprice_arr[cnt])
         await asyncio.sleep(0)
 
     # Создаем массив полученных данных в формате DataFrame
@@ -93,18 +97,18 @@ async def volume_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
     volume_sum[0] = volume_arr[0]
     
     # Создаем экзмепляр класса Фильтра Калмана (в качестве инициализации начальных значений применяется первое значение изменения цены)
-    volume_class_KF = KalmanFilter(volume_sum[0], variance=0.1)
+    volume_class_KF = KalmanFilter(volume_sum[0], variance=VOLUMESUM_KF_VARIANCE)
 
     for cnt in tqdm(range(1, datetime_arr.shape[0]), desc='Volume Calc'):
         #volume_sum[cnt] += volume_arr[cnt]
         volume_KF[cnt] = volume_class_KF.KF_processing(volume_sum[cnt])
         if deltatime_arr[cnt] <= SET_CRITICAL_DTIME:
-            volume_sum[cnt] += volume_arr[cnt]
+            volume_sum[cnt] = volume_sum[cnt-1] + volume_arr[cnt]
             volume_KF[cnt] = volume_class_KF.KF_processing(volume_sum[cnt])
         else:
             volume_sum[cnt] = 0
             volume_KF[cnt] = 0
-            volume_class_KF.KF_reset[volume_sum[cnt]]
+            volume_class_KF.KF_reset(volume_sum[cnt])
         #volume_bar.next()
         await asyncio.sleep(0)
 
@@ -157,5 +161,5 @@ if __name__ == '__main__':
 
     #result = model_calc(stock_data)
     result = asyncio.run(model_calc(stock_data_file))
-    result.to_csv(f'C:/Project/data/usdrub{__version__}.csv', index=False)
+    result.to_csv(f'C:/Project/data/usdrub_{__version__}.csv', index=False)
     
