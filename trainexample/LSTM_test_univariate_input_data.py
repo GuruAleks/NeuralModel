@@ -8,6 +8,11 @@ from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, LSTM
 from keras.utils import np_utils
+from keras.callbacks import ModelCheckpoint
+from keras_tqdm import TQDMNotebookCallback
+
+from tqdm.keras import TqdmCallback
+progress = TqdmCallback()
 
 import pandas as pd
 import numpy as np

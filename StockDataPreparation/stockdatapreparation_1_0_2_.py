@@ -12,16 +12,16 @@ from math import sin, cosh
 from lib.mathtool import KalmanFilter, dTime, derivative, derivative_calc
 
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 # Убраны мало влияющие на конечный результат значения
 # При паузах введено сброс параметров фильтров
 
 # Предельное время после которого обнуляется настройки (в секундах)
-SET_CRITICAL_DTIME = 30.0
+SET_CRITICAL_DTIME = 60.0
 
-LASTPRICE_KF_VARIANCE = 0.075
+LASTPRICE_KF_VARIANCE = 0.025
 
-VOLUMESUM_KF_VARIANCE = 0.1
+VOLUMESUM_KF_VARIANCE = 0.025
 
 # Вычисляем в асинхронном потоке параметры значений изменений цены
 async def last_price_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
@@ -101,7 +101,7 @@ async def volume_calc(stockdata: pd.DataFrame) -> pd.DataFrame:
 
     for cnt in tqdm(range(1, datetime_arr.shape[0]), desc='Volume Calc'):
         #volume_sum[cnt] += volume_arr[cnt]
-        volume_KF[cnt] = volume_class_KF.KF_processing(volume_sum[cnt])
+        #volume_KF[cnt] = volume_class_KF.KF_processing(volume_sum[cnt])
         if deltatime_arr[cnt] <= SET_CRITICAL_DTIME:
             volume_sum[cnt] = volume_sum[cnt-1] + volume_arr[cnt]
             volume_KF[cnt] = volume_class_KF.KF_processing(volume_sum[cnt])
